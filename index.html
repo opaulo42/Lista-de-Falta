@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chamada</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f6fed">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chamada">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#6b7280;--bd:#e3e6ea;--ac:#2f6fed;--p:#1f9d55;--f:#d64545;--j:#d98a00;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121417;--card:#1c2025;--tx:#eceff3;--mut:#9aa3af;--bd:#2c323a;--ac:#6b9bff;--p:#3fcf80;--f:#ff7070;--j:#f2b134;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121417;--card:#1c2025;--tx:#eceff3;--mut:#9aa3af;--bd:#2c323a;--ac:#6b9bff;--p:#3fcf80;--f:#ff7070;--j:#f2b134;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;padding:10px 4px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;font:inherit;font-size:14px}
+.tabs button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+input[type=text],input[type=date]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+.row{display:flex;gap:8px;align-items:center}
+.btn{padding:10px 14px;border:0;border-radius:10px;background:var(--ac);color:#fff;font:inherit;white-space:nowrap}
+.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--tx)}
+.name{font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}
+.x{background:none;border:0;color:var(--mut);font-size:13px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:12px 4px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:10px;font:inherit;font-size:14px}
+.seg .p.on{background:var(--p);border-color:var(--p);color:#fff}
+.seg .f.on{background:var(--f);border-color:var(--f);color:#fff}
+.seg .j.on{background:var(--j);border-color:var(--j);color:#fff}
+.note{margin-top:8px}
+.flt{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.flt button{padding:8px 12px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:99px;font:inherit;font-size:13px}
+.flt button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.sum{display:flex;gap:10px;font-size:14px;color:var(--mut);margin:8px 0}
+.sum b{color:var(--tx)}
+.mut{color:var(--mut);font-size:14px}
+textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;resize:vertical;margin-bottom:8px}
+.tabs button{font-size:13px}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.prow .x{padding:8px;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px 4px;border-bottom:1px solid var(--bd);text-align:center}
+td:first-child,th:first-child{text-align:left}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--j);color:#fff;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Lista de chamada</h1>
+<div class="tabs" id="tabs"></div>
+<div id="app"></div>
+</div>
+<script>
+const KEY='chamada_v1';
+let db={students:[],records:{}};
+let tab='chamada',delId=null,editId=null,clr=false,flt='all';
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+let date=today();
+const SEED=[];
+function load(){let r=null;try{r=localStorage.getItem(KEY)}catch(e){}
+  if(r){try{const o=JSON.parse(r);if(o&&o.students&&o.records){db=o;return}}catch(e){}}
+  db={students:SEED.map((n,i)=>({id:'s'+(i+1),name:n})),records:{}};save();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function fmt(d){const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function nameOf(id){const s=db.students.find(x=>x.id===id);return s?s.name:'(removido)'}
+function render(){
+  const T=[['chamada','Chamada'],['just','Justificadas'],['resumo','Resumo'],['pessoas','Pessoas']];
+  document.getElementById('tabs').innerHTML=T.map(t=>`<button class="${tab===t[0]?'on':''}" data-a="tab" data-v="${t[0]}">${t[1]}</button>`).join('');
+  const app=document.getElementById('app');
+  if(tab==='chamada'){
+    const day=db.records[date]||{};
+    let c={P:0,F:0,J:0};
+    db.students.forEach(s=>{const r=day[s.id];if(r&&c[r.s]!==undefined)c[r.s]++});
+    let h=`<div class="card"><input type="date" id="dt" value="${date}">
+    <div class="sum"><span>Prontos: <b>${c.P}</b></span><span>Faltas: <b>${c.F}</b></span><span>Justificadas: <b>${c.J}</b></span></div>
+    <button class="btn sec" data-a="restf">Marcar restante como falta</button>
+    <div class="flt">${[['all','Todos'],['P','Prontos'],['F','Faltas'],['J','Justificadas'],['N','Pendentes']].map(x=>`<button class="${flt===x[0]?'on':''}" data-a="flt" data-v="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;
+    const L=db.students.filter(s=>{const st=(day[s.id]||{}).s;return flt==='all'||(flt==='N'?!st:st===flt)});
+    if(db.students.length&&!L.length)h+='<p class="mut">Nenhum militar neste filtro.</p>';
+    h+=L.map(s=>{
+      const r=day[s.id]||{};const st=r.s;
+      return `<div class="card"><div class="name"><span>${esc(s.name)}</span></div>
+      <div class="seg">
+      <button class="p ${st==='P'?'on':''}" data-a="set" data-id="${s.id}" data-v="P">Pronto</button>
+      <button class="f ${st==='F'?'on':''}" data-a="set" data-id="${s.id}" data-v="F">Falta</button>
+      <button class="j ${st==='J'?'on':''}" data-a="set" data-id="${s.id}" data-v="J">Justificada</button></div>
+      ${st==='J'?`<input type="text" class="note" data-a="note" data-id="${s.id}" placeholder="Motivo (opcional)" value="${esc(r.note||'')}">`:''}</div>`}).join('');
+        if(!db.students.length)h+=`<p class="mut">Cadastre as pessoas na aba Pessoas para começar a chamada.</p>`;
+    if(db.students.length)h+=`<div style="display:flex;justify-content:flex-end;gap:8px">${clr?`<button class="btn sec" data-a="clrno">Cancelar</button><button class="btn" style="background:var(--f)" data-a="clrok">Confirmar limpar</button>`:`<button class="btn sec" data-a="clr">Limpar seleções</button>`}</div>`;
+    const keep=document.activeElement&&document.activeElement.id;
+    app.innerHTML=h;
+  }else if(tab==='pessoas'){
+    let h=`<div class="card"><div class="row"><input type="text" id="nn" placeholder="Nome (ex.: SD EV Fulano)"><button class="btn" data-a="add">Adicionar</button></div></div>`;
+    h+=`<div class="card">`+(db.students.length?db.students.map((s,i)=>`<div class="prow">${editId===s.id?`<input type="text" id="en" value="${esc(s.name)}" style="flex:1"><span><button class="x" data-a="saveedit" data-id="${s.id}" style="color:var(--p)">Salvar</button> <button class="x" data-a="canceledit">Cancelar</button></span>`:`<span>${i+1}. ${esc(s.name)}</span>`}${editId===s.id?'':delId===s.id?`<span><button class="x" data-a="del" data-id="${s.id}" style="color:var(--f)">Confirmar</button> <button class="x" data-a="cancel">Cancelar</button></span>`:`<span><button class="x" data-a="edit" data-id="${s.id}">editar</button> <button class="x" data-a="askdel" data-id="${s.id}">remover</button></span>`}</div>`).join(''):'<p class="mut">Nenhuma pessoa cadastrada.</p>')+`</div><p class="mut">Remover uma pessoa mantém o histórico dela, mas o nome aparece como (removido).</p>`;
+    h+=`<div class="card"><div class="name">Adicionar vários de uma vez</div><textarea id="bulk" rows="4" placeholder="Um nome por linha"></textarea><button class="btn" data-a="bulk">Adicionar lista</button></div><div class="card"><div class="name">Backup dos dados</div><div class="row"><button class="btn sec" data-a="exp">Exportar</button><button class="btn sec" data-a="imp">Importar</button></div><input type="file" id="fi" accept="application/json,.json" style="display:none"><p class="mut" style="margin-bottom:0">Exporte para guardar uma cópia ou levar os dados para outro aparelho.</p></div>`;
+    h+=`<div class="card"><div class="name"><span>Backup dos dados</span></div><textarea id="bk" rows="4" placeholder="Toque em Gerar backup para copiar, ou cole aqui um backup para restaurar" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:12px monospace"></textarea><div class="row" style="margin-top:8px"><button class="btn sec" data-a="bkgen">Gerar backup</button><button class="btn sec" data-a="bkrest">Restaurar</button></div><p class="mut" id="bkm">Restaurar substitui todos os dados atuais.</p></div>`;
+    app.innerHTML=h;
+  }else if(tab==='just'){
+    const rows=[];
+    Object.keys(db.records).sort().reverse().forEach(d=>{Object.keys(db.records[d]).forEach(id=>{const r=db.records[d][id];if(r.s==='J')rows.push([d,id,r.note||''])})});
+    app.innerHTML=rows.length?rows.map(r=>`<div class="card"><div class="name"><span>${esc(nameOf(r[1]))}</span><span class="tag">${fmt(r[0])}</span></div><div class="mut">${r[2]?esc(r[2]):'Sem motivo informado'}</div></div>`).join(''):`<p class="mut">Nenhuma falta justificada ainda.</p>`;
+  }else{
+    const t={};db.students.forEach(s=>t[s.id]={P:0,F:0,J:0});
+    Object.keys(db.records).forEach(d=>Object.keys(db.records[d]).forEach(id=>{if(t[id]&&t[id][db.records[d][id].s]!==undefined)t[id][db.records[d][id].s]++}));
+    app.innerHTML=db.students.length?`<div class="card"><table><tr><th>Militar</th><th>Pron.</th><th>Falt.</th><th>Just.</th></tr>${db.students.map(s=>`<tr><td>${esc(s.name)}</td><td>${t[s.id].P}</td><td>${t[s.id].F}</td><td>${t[s.id].J}</td></tr>`).join('')}</table></div>`:`<p class="mut">Sem militares cadastrados.</p>`;
+  }
+}
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-a]');if(!el||el.tagName==='INPUT')return;
+  const a=el.dataset.a,id=el.dataset.id,v=el.dataset.v;
+  if(a!=='clr')clr=false;
+  if(a==='bkgen'){const t=document.getElementById('bk');t.value=JSON.stringify(db);t.focus();t.select();try{navigator.clipboard.writeText(t.value)}catch(x){}document.getElementById('bkm').textContent='Backup gerado. Copie o texto (já selecionado) e guarde em lugar seguro.';return}
+  if(a==='bkrest'){const t=document.getElementById('bk').value.trim();try{const o=JSON.parse(t);if(!o||!Array.isArray(o.students)||!o.students.every(s=>s&&s.id&&s.name)||typeof o.records!=='object'||!o.records)throw 0;db={students:o.students,records:o.records};save();render();document.getElementById('bkm').textContent='Backup restaurado.'}catch(x){document.getElementById('bkm').textContent='Texto inválido. Cole o backup completo.'}return}
+  if(a==='tab'){tab=v;delId=null;editId=null}
+  else if(a==='set'){
+    const day=db.records[date]=db.records[date]||{};
+    if(day[id]&&day[id].s===v)delete day[id];else day[id]={s:v,note:(day[id]&&day[id].note)||''};
+    if(!Object.keys(day).length)delete db.records[date];
+    save();
+  }else if(a==='restf'){
+    const day=db.records[date]=db.records[date]||{};
+    db.students.forEach(s=>{if(!day[s.id])day[s.id]={s:'F',note:''}});save();
+  }else if(a==='flt'){flt=v}else if(a==='add'){
+    const i=document.getElementById('nn');const n=i.value.trim();
+    if(n){db.students.push({id:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:n});save()}
+  }else if(a==='askdel'){delId=id;editId=null}else if(a==='cancel'){delId=null}else if(a==='edit'){editId=id;delId=null}else if(a==='saveedit'){const n=document.getElementById('en').value.trim();const st=db.students.find(x=>x.id===id);if(n&&st){st.name=n;save()}editId=null}else if(a==='canceledit'){editId=null}else if(a==='clr'){clr=true}else if(a==='exp'){doExport()}else if(a==='bulk'){const t=document.getElementById('bulk').value.split('\n').map(x=>x.trim()).filter(Boolean);t.forEach((n,i)=>db.students.push({id:'s'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,5),name:n}));if(t.length)save()}else if(a==='imp'){document.getElementById('fi').click()}else if(a==='clrok'){delete db.records[date];save()}
+  else if(a==='del'){db.students=db.students.filter(s=>s.id!==id);delId=null;save()}
+  render();
+  const en=document.getElementById('en');if(en)en.focus();
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='dt'){date=e.target.value||today();clr=false;render()}
+  else if(e.target.dataset&&e.target.dataset.a==='note'){
+    const r=(db.records[date]||{})[e.target.dataset.id];if(r){r.note=e.target.value;save()}
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nn'){document.querySelector('[data-a=add]').click()}else if(e.key==='Enter'&&e.target.id==='en'){document.querySelector('[data-a=saveedit]').click()}});
+function doExport(){const b=new Blob([JSON.stringify(db)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='chamada-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+document.addEventListener('change',e=>{if(e.target.id!=='fi')return;const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||!Array.isArray(o.students)||typeof o.records!=='object')throw 0;if(confirm('Substituir os dados atuais pelos do arquivo?')){db={students:o.students,records:o.records};save();render()}else{e.target.value=''}}catch(x){alert('Arquivo inválido.')}};r.readAsText(f)});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+load();render();
+</script>
+</body>
+</html>
