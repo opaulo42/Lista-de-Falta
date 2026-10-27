@@ -46,6 +46,23 @@ textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;b
 .tabs button{font-size:13px}
 .prow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--bd)}
 .prow .x{padding:8px;font-size:14px}
+button{cursor:pointer}
+.grid{display:grid;gap:10px}
+.grid .card{margin-bottom:0}
+@media (hover:hover){.seg button:hover,.tabs button:hover,.flt button:hover,.btn:hover,.x:hover{filter:brightness(.94)}}
+@media (min-width:860px){
+.wrap{max-width:1040px;padding:28px 24px}
+h1{font-size:24px}
+.tabs{max-width:620px}
+.grid{grid-template-columns:repeat(2,1fr);gap:12px}
+.plist{columns:2;column-gap:32px}
+.plist .prow{break-inside:avoid}
+}
+@media (min-width:1280px){
+.wrap{max-width:1240px}
+.grid{grid-template-columns:repeat(3,1fr)}
+.plist{columns:3}
+}
 table{width:100%;border-collapse:collapse;font-size:14px}
 td,th{padding:8px 4px;border-bottom:1px solid var(--bd);text-align:center}
 td:first-child,th:first-child{text-align:left}
@@ -86,28 +103,28 @@ function render(){
     <div class="flt">${[['all','Todos'],['P','Prontos'],['F','Faltas'],['J','Justificadas'],['N','Pendentes']].map(x=>`<button class="${flt===x[0]?'on':''}" data-a="flt" data-v="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;
     const L=db.students.filter(s=>{const st=(day[s.id]||{}).s;return flt==='all'||(flt==='N'?!st:st===flt)});
     if(db.students.length&&!L.length)h+='<p class="mut">Nenhum militar neste filtro.</p>';
-    h+=L.map(s=>{
+    h+='<div class="grid">'+L.map(s=>{
       const r=day[s.id]||{};const st=r.s;
       return `<div class="card"><div class="name"><span>${esc(s.name)}</span></div>
       <div class="seg">
       <button class="p ${st==='P'?'on':''}" data-a="set" data-id="${s.id}" data-v="P">Pronto</button>
       <button class="f ${st==='F'?'on':''}" data-a="set" data-id="${s.id}" data-v="F">Falta</button>
       <button class="j ${st==='J'?'on':''}" data-a="set" data-id="${s.id}" data-v="J">Justificada</button></div>
-      ${st==='J'?`<input type="text" class="note" data-a="note" data-id="${s.id}" placeholder="Motivo (opcional)" value="${esc(r.note||'')}">`:''}</div>`}).join('');
+      ${st==='J'?`<input type="text" class="note" data-a="note" data-id="${s.id}" placeholder="Motivo (opcional)" value="${esc(r.note||'')}">`:''}</div>`}).join('')+'</div>';
         if(!db.students.length)h+=`<p class="mut">Cadastre as pessoas na aba Pessoas para começar a chamada.</p>`;
     if(db.students.length)h+=`<div style="display:flex;justify-content:flex-end;gap:8px">${clr?`<button class="btn sec" data-a="clrno">Cancelar</button><button class="btn" style="background:var(--f)" data-a="clrok">Confirmar limpar</button>`:`<button class="btn sec" data-a="clr">Limpar seleções</button>`}</div>`;
     const keep=document.activeElement&&document.activeElement.id;
     app.innerHTML=h;
   }else if(tab==='pessoas'){
     let h=`<div class="card"><div class="row"><input type="text" id="nn" placeholder="Nome (ex.: SD EV Fulano)"><button class="btn" data-a="add">Adicionar</button></div></div>`;
-    h+=`<div class="card">`+(db.students.length?db.students.map((s,i)=>`<div class="prow">${editId===s.id?`<input type="text" id="en" value="${esc(s.name)}" style="flex:1"><span><button class="x" data-a="saveedit" data-id="${s.id}" style="color:var(--p)">Salvar</button> <button class="x" data-a="canceledit">Cancelar</button></span>`:`<span>${i+1}. ${esc(s.name)}</span>`}${editId===s.id?'':delId===s.id?`<span><button class="x" data-a="del" data-id="${s.id}" style="color:var(--f)">Confirmar</button> <button class="x" data-a="cancel">Cancelar</button></span>`:`<span><button class="x" data-a="edit" data-id="${s.id}">editar</button> <button class="x" data-a="askdel" data-id="${s.id}">remover</button></span>`}</div>`).join(''):'<p class="mut">Nenhuma pessoa cadastrada.</p>')+`</div><p class="mut">Remover uma pessoa mantém o histórico dela, mas o nome aparece como (removido).</p>`;
+    h+=`<div class="card"><div class="plist">`+(db.students.length?db.students.map((s,i)=>`<div class="prow">${editId===s.id?`<input type="text" id="en" value="${esc(s.name)}" style="flex:1"><span><button class="x" data-a="saveedit" data-id="${s.id}" style="color:var(--p)">Salvar</button> <button class="x" data-a="canceledit">Cancelar</button></span>`:`<span>${i+1}. ${esc(s.name)}</span>`}${editId===s.id?'':delId===s.id?`<span><button class="x" data-a="del" data-id="${s.id}" style="color:var(--f)">Confirmar</button> <button class="x" data-a="cancel">Cancelar</button></span>`:`<span><button class="x" data-a="edit" data-id="${s.id}">editar</button> <button class="x" data-a="askdel" data-id="${s.id}">remover</button></span>`}</div>`).join(''):'<p class="mut">Nenhuma pessoa cadastrada.</p>')+`</div></div><p class="mut">Remover uma pessoa mantém o histórico dela, mas o nome aparece como (removido).</p>`;
     h+=`<div class="card"><div class="name">Adicionar vários de uma vez</div><textarea id="bulk" rows="4" placeholder="Um nome por linha"></textarea><button class="btn" data-a="bulk">Adicionar lista</button></div><div class="card"><div class="name">Backup dos dados</div><div class="row"><button class="btn sec" data-a="exp">Exportar</button><button class="btn sec" data-a="imp">Importar</button></div><input type="file" id="fi" accept="application/json,.json" style="display:none"><p class="mut" style="margin-bottom:0">Exporte para guardar uma cópia ou levar os dados para outro aparelho.</p></div>`;
     h+=`<div class="card"><div class="name"><span>Backup dos dados</span></div><textarea id="bk" rows="4" placeholder="Toque em Gerar backup para copiar, ou cole aqui um backup para restaurar" style="width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:12px monospace"></textarea><div class="row" style="margin-top:8px"><button class="btn sec" data-a="bkgen">Gerar backup</button><button class="btn sec" data-a="bkrest">Restaurar</button></div><p class="mut" id="bkm">Restaurar substitui todos os dados atuais.</p></div>`;
     app.innerHTML=h;
   }else if(tab==='just'){
     const rows=[];
     Object.keys(db.records).sort().reverse().forEach(d=>{Object.keys(db.records[d]).forEach(id=>{const r=db.records[d][id];if(r.s==='J')rows.push([d,id,r.note||''])})});
-    app.innerHTML=rows.length?rows.map(r=>`<div class="card"><div class="name"><span>${esc(nameOf(r[1]))}</span><span class="tag">${fmt(r[0])}</span></div><div class="mut">${r[2]?esc(r[2]):'Sem motivo informado'}</div></div>`).join(''):`<p class="mut">Nenhuma falta justificada ainda.</p>`;
+    app.innerHTML=rows.length?'<div class="grid">'+rows.map(r=>`<div class="card"><div class="name"><span>${esc(nameOf(r[1]))}</span><span class="tag">${fmt(r[0])}</span></div><div class="mut">${r[2]?esc(r[2]):'Sem motivo informado'}</div></div>`).join('')+'</div>':`<p class="mut">Nenhuma falta justificada ainda.</p>`;
   }else{
     const t={};db.students.forEach(s=>t[s.id]={P:0,F:0,J:0});
     Object.keys(db.records).forEach(d=>Object.keys(db.records[d]).forEach(id=>{if(t[id]&&t[id][db.records[d][id].s]!==undefined)t[id][db.records[d][id].s]++}));
