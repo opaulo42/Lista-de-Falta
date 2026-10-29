@@ -84,6 +84,18 @@ let date=today();
 let per=new Date().getHours()>=12?2:1;
 function rk(d,p){return p===2?d+'|2':d}
 function hora(k){return k.indexOf('|2')>-1?'13:30':'08:00'}
+let rv='sem',rd=today();
+const MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function pd(x){const p=x.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function ds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function wk(){const d=pd(rd);d.setDate(d.getDate()-((d.getDay()+6)%7));const a=ds(d);d.setDate(d.getDate()+6);return [a,ds(d)]}
+function inR(x){if(rv==='all')return true;if(rv==='mes')return x.slice(0,7)===rd.slice(0,7);const w=wk();return x>=w[0]&&x<=w[1]}
+function rlabel(){if(rv==='all')return 'Todo o período';if(rv==='mes'){const p=rd.split('-');return MES[+p[1]-1]+' de '+p[0]}const w=wk();return fmt(w[0]).slice(0,5)+' a '+fmt(w[1])}
+function rsel(){
+  const chips=[['sem','Semana'],['mes','Mês'],['all','Geral']].map(x=>`<button class="${rv===x[0]?'on':''}" data-a="rv" data-v="${x[0]}">${x[1]}</button>`).join('');
+  const nav=rv==='all'?'':`<div class="row" style="margin-top:10px"><button class="btn sec" data-a="rnav" data-v="-1">‹</button><div style="flex:1;text-align:center;font-weight:600">${rlabel()}</div><button class="btn sec" data-a="rnav" data-v="1">›</button><button class="btn sec" data-a="rtoday">Hoje</button></div>`;
+  return `<div class="card"><div class="flt" style="margin-top:0">${chips}</div>${nav}</div>`;
+}
 const SEED=[];
 function load(){let r=null;try{r=localStorage.getItem(KEY)}catch(e){}
   if(r){try{const o=JSON.parse(r);if(o&&o.students&&o.records){db=o;return}}catch(e){}}
@@ -131,8 +143,8 @@ function render(){
     app.innerHTML=rows.length?'<div class="grid">'+rows.map(r=>`<div class="card"><div class="name"><span>${esc(nameOf(r[1]))}</span><span class="tag">${fmt(r[0].split('|')[0])} · ${hora(r[0])}</span></div><div class="mut">${r[2]?esc(r[2]):'Sem motivo informado'}</div></div>`).join('')+'</div>':`<p class="mut">Nenhuma falta justificada ainda.</p>`;
   }else{
     const t={};db.students.forEach(s=>t[s.id]={P:0,F:0,F2:0,J:0});
-    Object.keys(db.records).forEach(d=>Object.keys(db.records[d]).forEach(id=>{if(!t[id])return;const k=db.records[d][id].s;if(k==='F'&&d.indexOf('|2')>-1)t[id].F2++;else if(t[id][k]!==undefined)t[id][k]++}));
-    app.innerHTML=db.students.length?`<div class="card"><table><tr><th>Militar</th><th>Pron.</th><th>Falt. 08h</th><th>Falt. 13h30</th><th>Just.</th></tr>${db.students.map(s=>`<tr><td>${esc(s.name)}</td><td>${t[s.id].P}</td><td>${t[s.id].F}</td><td>${t[s.id].F2}</td><td>${t[s.id].J}</td></tr>`).join('')}</table></div>`:`<p class="mut">Sem militares cadastrados.</p>`;
+    Object.keys(db.records).filter(d=>inR(d.split('|')[0])).forEach(d=>Object.keys(db.records[d]).forEach(id=>{if(!t[id])return;const k=db.records[d][id].s;if(k==='F'&&d.indexOf('|2')>-1)t[id].F2++;else if(t[id][k]!==undefined)t[id][k]++}));
+    app.innerHTML=rsel()+(db.students.length?`<div class="card"><table><tr><th>Militar</th><th>Pron.</th><th>Falt. 08h</th><th>Falt. 13h30</th><th>Just.</th></tr>${db.students.map(s=>`<tr><td>${esc(s.name)}</td><td>${t[s.id].P}</td><td>${t[s.id].F}</td><td>${t[s.id].F2}</td><td>${t[s.id].J}</td></tr>`).join('')}</table></div>`:`<p class="mut">Sem militares cadastrados.</p>`);
   }
 }
 document.addEventListener('click',e=>{
@@ -153,7 +165,7 @@ document.addEventListener('click',e=>{
   }else if(a==='flt'){flt=v}else if(a==='add'){
     const i=document.getElementById('nn');const n=i.value.trim();
     if(n){db.students.push({id:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:n});save()}
-  }else if(a==='askdel'){delId=id;editId=null}else if(a==='cancel'){delId=null}else if(a==='edit'){editId=id;delId=null}else if(a==='saveedit'){const n=document.getElementById('en').value.trim();const st=db.students.find(x=>x.id===id);if(n&&st){st.name=n;save()}editId=null}else if(a==='canceledit'){editId=null}else if(a==='clr'){clr=true}else if(a==='per'){per=+v}else if(a==='exp'){doExport()}else if(a==='bulk'){const t=document.getElementById('bulk').value.split('\n').map(x=>x.trim()).filter(Boolean);t.forEach((n,i)=>db.students.push({id:'s'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,5),name:n}));if(t.length)save()}else if(a==='imp'){document.getElementById('fi').click()}else if(a==='clrok'){delete db.records[rk(date,per)];save()}
+  }else if(a==='askdel'){delId=id;editId=null}else if(a==='cancel'){delId=null}else if(a==='edit'){editId=id;delId=null}else if(a==='saveedit'){const n=document.getElementById('en').value.trim();const st=db.students.find(x=>x.id===id);if(n&&st){st.name=n;save()}editId=null}else if(a==='canceledit'){editId=null}else if(a==='clr'){clr=true}else if(a==='per'){per=+v}else if(a==='rv'){rv=v}else if(a==='rnav'){const d=pd(rd);if(rv==='mes'){d.setDate(1);d.setMonth(d.getMonth()+ +v)}else d.setDate(d.getDate()+7*+v);rd=ds(d)}else if(a==='rtoday'){rd=today()}else if(a==='exp'){doExport()}else if(a==='bulk'){const t=document.getElementById('bulk').value.split('\n').map(x=>x.trim()).filter(Boolean);t.forEach((n,i)=>db.students.push({id:'s'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,5),name:n}));if(t.length)save()}else if(a==='imp'){document.getElementById('fi').click()}else if(a==='clrok'){delete db.records[rk(date,per)];save()}
   else if(a==='del'){db.students=db.students.filter(s=>s.id!==id);delId=null;save()}
   render();
   const en=document.getElementById('en');if(en)en.focus();

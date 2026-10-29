@@ -1,4 +1,4 @@
-const C = 'chamada-v3'; // aumente o número (v2, v3...) ao atualizar o index.html
+const C = 'chamada-v4'; // aumente o número (v2, v3...) ao atualizar o index.html
 const F = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(C).then(c => c.addAll(F)).then(() => self.skipWaiting()));
