@@ -81,6 +81,9 @@ let db={students:[],records:{}};
 let tab='chamada',delId=null,editId=null,clr=false,flt='all';
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 let date=today();
+let per=new Date().getHours()>=12?2:1;
+function rk(d,p){return p===2?d+'|2':d}
+function hora(k){return k.indexOf('|2')>-1?'13:30':'08:00'}
 const SEED=[];
 function load(){let r=null;try{r=localStorage.getItem(KEY)}catch(e){}
   if(r){try{const o=JSON.parse(r);if(o&&o.students&&o.records){db=o;return}}catch(e){}}
@@ -94,10 +97,11 @@ function render(){
   document.getElementById('tabs').innerHTML=T.map(t=>`<button class="${tab===t[0]?'on':''}" data-a="tab" data-v="${t[0]}">${t[1]}</button>`).join('');
   const app=document.getElementById('app');
   if(tab==='chamada'){
-    const day=db.records[date]||{};
+    const day=db.records[rk(date,per)]||{};
     let c={P:0,F:0,J:0};
     db.students.forEach(s=>{const r=day[s.id];if(r&&c[r.s]!==undefined)c[r.s]++});
     let h=`<div class="card"><input type="date" id="dt" value="${date}">
+    <div class="flt">${[[1,'Chamada 08:00'],[2,'Chamada 13:30']].map(x=>`<button class="${per===x[0]?'on':''}" data-a="per" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
     <div class="sum"><span>Prontos: <b>${c.P}</b></span><span>Faltas: <b>${c.F}</b></span><span>Justificadas: <b>${c.J}</b></span></div>
     <button class="btn sec" data-a="restf">Marcar restante como falta</button>
     <div class="flt">${[['all','Todos'],['P','Prontos'],['F','Faltas'],['J','Justificadas'],['N','Pendentes']].map(x=>`<button class="${flt===x[0]?'on':''}" data-a="flt" data-v="${x[0]}">${x[1]}</button>`).join('')}</div></div>`;
@@ -124,11 +128,11 @@ function render(){
   }else if(tab==='just'){
     const rows=[];
     Object.keys(db.records).sort().reverse().forEach(d=>{Object.keys(db.records[d]).forEach(id=>{const r=db.records[d][id];if(r.s==='J')rows.push([d,id,r.note||''])})});
-    app.innerHTML=rows.length?'<div class="grid">'+rows.map(r=>`<div class="card"><div class="name"><span>${esc(nameOf(r[1]))}</span><span class="tag">${fmt(r[0])}</span></div><div class="mut">${r[2]?esc(r[2]):'Sem motivo informado'}</div></div>`).join('')+'</div>':`<p class="mut">Nenhuma falta justificada ainda.</p>`;
+    app.innerHTML=rows.length?'<div class="grid">'+rows.map(r=>`<div class="card"><div class="name"><span>${esc(nameOf(r[1]))}</span><span class="tag">${fmt(r[0].split('|')[0])} · ${hora(r[0])}</span></div><div class="mut">${r[2]?esc(r[2]):'Sem motivo informado'}</div></div>`).join('')+'</div>':`<p class="mut">Nenhuma falta justificada ainda.</p>`;
   }else{
-    const t={};db.students.forEach(s=>t[s.id]={P:0,F:0,J:0});
-    Object.keys(db.records).forEach(d=>Object.keys(db.records[d]).forEach(id=>{if(t[id]&&t[id][db.records[d][id].s]!==undefined)t[id][db.records[d][id].s]++}));
-    app.innerHTML=db.students.length?`<div class="card"><table><tr><th>Militar</th><th>Pron.</th><th>Falt.</th><th>Just.</th></tr>${db.students.map(s=>`<tr><td>${esc(s.name)}</td><td>${t[s.id].P}</td><td>${t[s.id].F}</td><td>${t[s.id].J}</td></tr>`).join('')}</table></div>`:`<p class="mut">Sem militares cadastrados.</p>`;
+    const t={};db.students.forEach(s=>t[s.id]={P:0,F:0,F2:0,J:0});
+    Object.keys(db.records).forEach(d=>Object.keys(db.records[d]).forEach(id=>{if(!t[id])return;const k=db.records[d][id].s;if(k==='F'&&d.indexOf('|2')>-1)t[id].F2++;else if(t[id][k]!==undefined)t[id][k]++}));
+    app.innerHTML=db.students.length?`<div class="card"><table><tr><th>Militar</th><th>Pron.</th><th>Falt. 08h</th><th>Falt. 13h30</th><th>Just.</th></tr>${db.students.map(s=>`<tr><td>${esc(s.name)}</td><td>${t[s.id].P}</td><td>${t[s.id].F}</td><td>${t[s.id].F2}</td><td>${t[s.id].J}</td></tr>`).join('')}</table></div>`:`<p class="mut">Sem militares cadastrados.</p>`;
   }
 }
 document.addEventListener('click',e=>{
@@ -139,17 +143,17 @@ document.addEventListener('click',e=>{
   if(a==='bkrest'){const t=document.getElementById('bk').value.trim();try{const o=JSON.parse(t);if(!o||!Array.isArray(o.students)||!o.students.every(s=>s&&s.id&&s.name)||typeof o.records!=='object'||!o.records)throw 0;db={students:o.students,records:o.records};save();render();document.getElementById('bkm').textContent='Backup restaurado.'}catch(x){document.getElementById('bkm').textContent='Texto inválido. Cole o backup completo.'}return}
   if(a==='tab'){tab=v;delId=null;editId=null}
   else if(a==='set'){
-    const day=db.records[date]=db.records[date]||{};
+    const day=db.records[rk(date,per)]=db.records[rk(date,per)]||{};
     if(day[id]&&day[id].s===v)delete day[id];else day[id]={s:v,note:(day[id]&&day[id].note)||''};
-    if(!Object.keys(day).length)delete db.records[date];
+    if(!Object.keys(day).length)delete db.records[rk(date,per)];
     save();
   }else if(a==='restf'){
-    const day=db.records[date]=db.records[date]||{};
+    const day=db.records[rk(date,per)]=db.records[rk(date,per)]||{};
     db.students.forEach(s=>{if(!day[s.id])day[s.id]={s:'F',note:''}});save();
   }else if(a==='flt'){flt=v}else if(a==='add'){
     const i=document.getElementById('nn');const n=i.value.trim();
     if(n){db.students.push({id:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:n});save()}
-  }else if(a==='askdel'){delId=id;editId=null}else if(a==='cancel'){delId=null}else if(a==='edit'){editId=id;delId=null}else if(a==='saveedit'){const n=document.getElementById('en').value.trim();const st=db.students.find(x=>x.id===id);if(n&&st){st.name=n;save()}editId=null}else if(a==='canceledit'){editId=null}else if(a==='clr'){clr=true}else if(a==='exp'){doExport()}else if(a==='bulk'){const t=document.getElementById('bulk').value.split('\n').map(x=>x.trim()).filter(Boolean);t.forEach((n,i)=>db.students.push({id:'s'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,5),name:n}));if(t.length)save()}else if(a==='imp'){document.getElementById('fi').click()}else if(a==='clrok'){delete db.records[date];save()}
+  }else if(a==='askdel'){delId=id;editId=null}else if(a==='cancel'){delId=null}else if(a==='edit'){editId=id;delId=null}else if(a==='saveedit'){const n=document.getElementById('en').value.trim();const st=db.students.find(x=>x.id===id);if(n&&st){st.name=n;save()}editId=null}else if(a==='canceledit'){editId=null}else if(a==='clr'){clr=true}else if(a==='per'){per=+v}else if(a==='exp'){doExport()}else if(a==='bulk'){const t=document.getElementById('bulk').value.split('\n').map(x=>x.trim()).filter(Boolean);t.forEach((n,i)=>db.students.push({id:'s'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,5),name:n}));if(t.length)save()}else if(a==='imp'){document.getElementById('fi').click()}else if(a==='clrok'){delete db.records[rk(date,per)];save()}
   else if(a==='del'){db.students=db.students.filter(s=>s.id!==id);delId=null;save()}
   render();
   const en=document.getElementById('en');if(en)en.focus();
@@ -157,7 +161,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   if(e.target.id==='dt'){date=e.target.value||today();clr=false;render()}
   else if(e.target.dataset&&e.target.dataset.a==='note'){
-    const r=(db.records[date]||{})[e.target.dataset.id];if(r){r.note=e.target.value;save()}
+    const r=(db.records[rk(date,per)]||{})[e.target.dataset.id];if(r){r.note=e.target.value;save()}
   }
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nn'){document.querySelector('[data-a=add]').click()}else if(e.key==='Enter'&&e.target.id==='en'){document.querySelector('[data-a=saveedit]').click()}});
