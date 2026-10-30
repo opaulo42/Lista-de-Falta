@@ -1,5 +1,5 @@
 // Versão do cache. Aumente (v6, v7...) a cada atualização do index.html.
-const C = 'chamada-v5';
+const C = 'chamada-v6';
 const F = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 // Instala baixando sempre a versão mais nova do servidor (ignora o cache do navegador).
